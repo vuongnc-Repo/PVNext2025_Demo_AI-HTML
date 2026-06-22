@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Triển Khai Xây Dựng Mô Hình AI trong công tác KT-VH-BDSC — NMNĐ Sông Hậu 1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Be+Vietnam+Pro:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#0A2A4A;
+  --navy-deep:#061B33;
+  --blue:#0083C7;
+  --green:#00B050;
+  --ink:#0A2A4A;
+  --paper:#F4F8FB;
+  --mist:#AFC6DA;
+  --nav-w:264px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  font-family:'Be Vietnam Pro', system-ui, -apple-system, "Segoe UI", sans-serif;
+  background:var(--navy-deep);
+  color:#fff;
+  overflow-x:hidden;
+}
+h1,h2,h3,.display{
+  font-family:'Sora', system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+.mono{
+  font-family:'IBM Plex Mono', ui-monospace, "Courier New", monospace;
+}
+
+/* ===== Scroll container ===== */
+.deck{
+  margin-left:var(--nav-w);
+  height:100dvh;
+  overflow-y:scroll;
+  scroll-snap-type:y mandatory;
+}
+.slide{
+  position:relative;
+  min-height:100dvh;
+  height:100dvh;
+  scroll-snap-align:start;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+  padding:clamp(24px,5vw,72px);
+}
+
+/* ===== Backgrounds ===== */
+.bg{
+  position:absolute;
+  inset:0;
+  z-index:0;
+  background:radial-gradient(120% 140% at 20% -10%, #103a63 0%, var(--navy) 45%, var(--navy-deep) 100%);
+  animation:kenburns 24s ease-in-out infinite alternate;
+}
+@keyframes kenburns{
+  0%{transform:scale(1) translate(0,0);}
+  100%{transform:scale(1.12) translate(-1.5%,1%);}
+}
+/* Blueprint grid — schematic vernacular of a P&ID drawing, not a decorative blur */
+.blueprint{
+  position:absolute;inset:0;z-index:0;pointer-events:none;
+  background-image:
+    linear-gradient(rgba(0,131,199,.16) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,131,199,.16) 1px, transparent 1px),
+    linear-gradient(rgba(0,131,199,.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,131,199,.07) 1px, transparent 1px);
+  background-size:120px 120px,120px 120px,24px 24px,24px 24px;
+  background-position:-1px -1px;
+  mask-image:radial-gradient(120% 90% at 50% 0%, #000 30%, transparent 85%);
+  -webkit-mask-image:radial-gradient(120% 90% at 50% 0%, #000 30%, transparent 85%);
+}
+/* Single instrument glow per hero moment — restraint over scattered orbs */
+.gauge-glow{
+  position:absolute;
+  width:46vw;height:46vw;
+  border-radius:50%;
+  z-index:0;pointer-events:none;
+  background:radial-gradient(circle, rgba(0,176,80,.16) 0%, transparent 70%);
+  top:-14%;right:-12%;
+}
+.grain{
+  position:absolute;inset:0;z-index:1;pointer-events:none;
+  background-image:radial-gradient(rgba(255,255,255,.04) 1px, transparent 1px);
+  background-size:3px 3px;
+  opacity:.5;
+}
+
+.content{
+  position:relative;
+  z-index:2;
+  width:100%;
+  max-width:1180px;
+}
+
+/* ===== Reveal animation ===== */
+.r{
+  opacity:0;
+  transform:translateY(28px);
+  transition:opacity .8s cubic-bezier(.16,1,.3,1), transform .8s cubic-bezier(.16,1,.3,1);
+}
+.r.in{opacity:1;transform:translateY(0);}
+.r1{transition-delay:.05s;} .r2{transition-delay:.15s;} .r3{transition-delay:.25s;}
+.r4{transition-delay:.35s;} .r5{transition-delay:.45s;} .r6{transition-delay:.55s;}
+
+/* ===== Typography ===== */
+.kicker{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  font-family:'IBM Plex Mono', ui-monospace, monospace;
+  font-size:clamp(.66rem,1.2vw,.78rem);
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:var(--green);
+  font-weight:500;
+  margin-bottom:clamp(10px,2vw,18px);
+}
+.kicker::before{content:"";width:22px;height:2px;background:var(--green);display:inline-block;}
+h1.title{
+  font-size:clamp(2rem,4.4vw,3.6rem);
+  font-weight:800;
+  line-height:1.08;
+  letter-spacing:-.01em;
+  margin-bottom:clamp(14px,2vw,22px);
+}
+h2.section-title{
+  font-size:clamp(1.6rem,3.4vw,2.7rem);
+  font-weight:700;
+  line-height:1.15;
+  margin-bottom:clamp(14px,2vw,22px);
+}
+p.lead{
+  font-size:clamp(.95rem,1.5vw,1.25rem);
+  line-height:1.6;
+  color:#D9E6F2;
+  font-weight:300;
+  max-width:760px;
+}
+.num{
+  font-family:'IBM Plex Mono', ui-monospace, monospace;
+  font-weight:600;
+  font-size:clamp(2.2rem,5vw,4.2rem);
+  color:var(--green);
+  line-height:1;
+  font-feature-settings:"tnum";
+}
+.num-unit{
+  font-family:'IBM Plex Mono', ui-monospace, monospace;
+  font-size:.4em;
+  color:var(--mist);
+  font-weight:500;
+  margin-left:2px;
+}
+.cap{
+  font-size:clamp(.78rem,1.1vw,.95rem);
+  color:var(--mist);
+  font-weight:500;
+}
+
+/* ===== Components ===== */
+.pill{
+  display:inline-block;
+  padding:6px 14px;
+  border-radius:4px;
+  background:rgba(0,131,199,.18);
+  border:1px solid rgba(0,131,199,.4);
+  font-family:'IBM Plex Mono', ui-monospace, monospace;
+  font-size:clamp(.68rem,1vw,.78rem);
+  letter-spacing:.04em;
+  color:#9FD7FF;
+  font-weight:500;
+  margin-bottom:14px;
+}
+.grid{
+  display:grid;
+  gap:clamp(14px,2vw,24px);
+}
+.grid-2{grid-template-columns:1fr 1fr;}
+.grid-3{grid-template-columns:repeat(3,1fr);}
+.grid-4{grid-template-columns:repeat(4,1fr);}
+@media (max-width:900px){
+  .grid-2,.grid-3,.grid-4{grid-template-columns:1fr;}
+}
+.card{
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:16px;
+  padding:clamp(16px,2.4vw,28px);
+  backdrop-filter:blur(6px);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.1),
+    0 12px 28px -16px rgba(2,10,20,.55);
+}
+.card h3{
+  font-size:clamp(1rem,1.6vw,1.25rem);
+  font-weight:700;
+  margin-bottom:8px;
+  color:#fff;
+}
+.card p{
+  font-size:clamp(.82rem,1.2vw,.95rem);
+  color:#C7D6E5;
+  line-height:1.55;
+  font-weight:300;
+}
+.tag-dot{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:34px;height:34px;border-radius:10px;
+  background:linear-gradient(135deg,var(--blue),var(--green));
+  font-weight:700;font-size:.95rem;margin-bottom:10px;
+}
+table.kpi{
+  width:100%;
+  border-collapse:collapse;
+  font-size:clamp(.78rem,1.1vw,.92rem);
+}
+table.kpi th, table.kpi td{
+  text-align:left;
+  padding:10px 12px;
+  border-bottom:1px solid rgba(255,255,255,.1);
+  color:#D9E6F2;
+  font-weight:300;
+}
+table.kpi th{
+  font-family:'IBM Plex Mono', ui-monospace, monospace;
+  color:#9FD7FF;
+  font-weight:500;
+  text-transform:uppercase;
+  font-size:.7rem;
+  letter-spacing:.08em;
+}
+
+/* Timeline — drawn as a process line, the way a real schedule runs left to right through a plant */
+.timeline{
+  display:flex;
+  flex-wrap:wrap;
+  position:relative;
+  padding-top:14px;
+}
+.timeline::before{
+  content:"";
+  position:absolute;
+  top:5px;left:0;right:0;
+  height:1px;
+  background:repeating-linear-gradient(90deg, rgba(0,131,199,.5) 0 6px, transparent 6px 11px);
+}
+.tl-step{
+  flex:1 1 140px;
+  padding:18px 12px 0;
+  position:relative;
+  border-right:1px solid rgba(255,255,255,.06);
+}
+.tl-step:last-child{border-right:none;}
+.tl-step::before{
+  content:"";
+  position:absolute;
+  top:0;left:12px;
+  width:9px;height:9px;
+  border-radius:50%;
+  background:var(--navy-deep);
+  border:2px solid var(--green);
+}
+.tl-step .wk{
+  font-family:'IBM Plex Mono', ui-monospace, monospace;
+  font-size:.68rem;color:var(--green);font-weight:500;letter-spacing:.04em;
+}
+.tl-step .lbl{
+  font-size:clamp(.74rem,1vw,.86rem);
+  color:#E7F0F8;font-weight:500;margin-top:4px;
+  padding-left:2px;
+}
+
+/* Vertical flow stepper — two columns, each a continuous process line top-to-bottom */
+.flow-cols{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:clamp(24px,4vw,56px);
+}
+@media (max-width:760px){
+  .flow-cols{grid-template-columns:1fr;}
+}
+.flow{
+  position:relative;
+  padding-left:30px;
+}
+.flow::before{
+  content:"";
+  position:absolute;
+  left:5px;top:6px;bottom:6px;
+  width:1px;
+  background:repeating-linear-gradient(180deg, rgba(0,131,199,.55) 0 6px, transparent 6px 11px);
+}
+.flow-step{
+  position:relative;
+  padding:0 0 clamp(16px,2.4vw,26px);
+}
+.flow-step:last-child{padding-bottom:0;}
+.flow-step::before{
+  content:"";
+  position:absolute;
+  left:-30px;top:2px;
+  width:11px;height:11px;
+  border-radius:50%;
+  background:var(--navy-deep);
+  border:2px solid var(--green);
+  z-index:1;
+}
+.flow-step .wk{
+  font-family:'IBM Plex Mono', ui-monospace, monospace;
+  font-size:.7rem;color:var(--green);font-weight:500;letter-spacing:.04em;
+  display:block;
+}
+.flow-step .lbl{
+  font-size:clamp(.82rem,1.2vw,.98rem);
+  color:#E7F0F8;font-weight:500;margin-top:3px;
+}
+
+/* progress bar at top */
+.progress{
+  position:fixed;top:0;left:var(--nav-w);right:0;height:3px;
+  background:rgba(255,255,255,.08);z-index:50;
+}
+.progress-bar{
+  height:100%;width:100%;
+  transform:scaleX(0);
+  transform-origin:left;
+  background:linear-gradient(90deg,var(--blue),var(--green));
+  transition:transform .15s linear;
+  will-change:transform;
+}
+
+/* ===== Side Nav ===== */
+.sidenav{
+  position:fixed;
+  top:0;left:0;
+  width:var(--nav-w);
+  height:100dvh;
+  background:linear-gradient(180deg,var(--navy-deep),#04101F);
+  border-right:1px solid rgba(255,255,255,.08);
+  z-index:40;
+  display:flex;
+  flex-direction:column;
+  padding:28px 0 20px;
+}
+.sidenav .brand{
+  padding:0 22px 22px;
+  border-bottom:1px solid rgba(255,255,255,.08);
+  margin-bottom:10px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+.sidenav .brand img{
+  width:38px;height:38px;object-fit:contain;
+  filter:drop-shadow(0 2px 6px rgba(0,0,0,.35));
+  flex-shrink:0;
+}
+.sidenav .brand .b1{font-family:'Sora',sans-serif;font-weight:800;font-size:1.05rem;letter-spacing:.02em;}
+.sidenav .brand .b1 span{color:var(--green);}
+.sidenav .brand .b2{font-size:.68rem;color:var(--mist);margin-top:4px;letter-spacing:.05em;}
+.navlist{
+  flex:1;
+  overflow-y:auto;
+  padding:6px 10px;
+}
+.navlist::-webkit-scrollbar{width:4px;}
+.navlist::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:4px;}
+.navlink{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  width:100%;
+  text-align:left;
+  background:none;
+  border:none;
+  color:#9FB3C8;
+  font-family:'Be Vietnam Pro',sans-serif;
+  font-size:.8rem;
+  font-weight:500;
+  padding:9px 12px;
+  border-radius:9px;
+  cursor:pointer;
+  transition:background .25s,color .25s,transform .15s;
+}
+.navlink:active{transform:scale(.98);}
+.navlink .idx{
+  font-family:'IBM Plex Mono', ui-monospace, monospace;
+  font-size:.68rem;
+  font-weight:500;
+  width:20px;
+  color:var(--mist);
+  flex-shrink:0;
+}
+.navlink:hover{background:rgba(255,255,255,.06);color:#fff;}
+.navlink:focus-visible{outline:2px solid var(--green);outline-offset:2px;}
+.navlink.active{
+  background:rgba(0,131,199,.18);
+  color:#fff;
+  box-shadow:inset 3px 0 0 var(--green);
+}
+.navlink.active .idx{color:var(--green);}
+.sidenav .foot{
+  padding:14px 22px 0;
+  border-top:1px solid rgba(255,255,255,.08);
+  font-family:'Sora', system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size:.66rem;
+  font-weight:600;
+  color:var(--green);
+  line-height:1.5;
+}
+
+@media (max-width:880px){
+  :root{--nav-w:0px;}
+  .sidenav{transform:translateX(-100%);transition:transform .3s ease;}
+  .sidenav.open{transform:translateX(0);}
+  .deck{margin-left:0;}
+  .progress{left:0;}
+  .navtoggle{display:flex !important;}
+}
+.navtoggle{
+  display:none;
+  position:fixed;top:16px;left:16px;z-index:60;
+  width:42px;height:42px;border-radius:10px;
+  background:rgba(10,42,74,.9);border:1px solid rgba(255,255,255,.15);
+  align-items:center;justify-content:center;color:#fff;cursor:pointer;
+}
+.navtoggle span{display:block;width:18px;height:2px;background:#fff;position:relative;}
+.navtoggle span::before,.navtoggle span::after{content:"";position:absolute;left:0;width:18px;height:2px;background:#fff;}
+.navtoggle span::before{top:-6px;}
+.navtoggle span::after{top:6px;}
+.navtoggle:focus-visible{outline:2px solid var(--green);outline-offset:2px;}
+
+@media (prefers-reduced-motion: reduce){
+  html{scroll-behavior:auto;}
+  .bg, .r{animation:none !important;transition:none !important;}
+  .r{opacity:1;transform:none;}
+}
+
+footer.cover-foot{
+  position:absolute;bottom:clamp(20px,4vw,40px);left:0;right:0;
+  display:flex;justify-content:space-between;align-items:center;
+  padding:0 clamp(24px,5vw,72px);
+  font-size:clamp(.7rem,1vw,.85rem);
+  color:var(--mist);z-index:2;
+}
+
+.divider{
+  width:48px;height:3px;background:linear-gradient(90deg,var(--blue),var(--green));
+  border-radius:3px;margin-bottom:18px;
+}
+</style>
+</head>
+<body>
+
+<div class="navtoggle" id="navToggle"><span></span></div>
+<div class="progress"><div class="progress-bar" id="progressBar"></div></div>
+
+<nav class="sidenav" id="sidenav">
+  <div class="brand">
+    <img src="data:image/png;base64,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" alt="PetroVietnam PVPGB">
+    <div>
+      <div class="b1" style="color:var(--green);">PVPGB</div>
+      <div class="b2">PVNEXT 2025 — TUẦN 10</div>
+    </div>
+  </div>
+  <div class="navlist" id="navlist"></div>
+  <div class="foot">NMNĐ Sông Hậu 1<br>Chi nhánh Phát điện Dầu khí</div>
+</nav>
+
+<main class="deck" id="deck">
+
+  <!-- 1. COVER -->
+  <section class="slide" id="s1" data-title="Trang bìa">
+    <div class="bg"></div><div class="blueprint"></div><div class="gauge-glow"></div><div class="grain"></div>
+    <div class="content" style="text-align:center;">
+      <img src="data:image/png;base64,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" alt="PetroVietnam PVPGB" class="r r1" style="width:clamp(64px,8vw,96px);height:clamp(64px,8vw,96px);object-fit:contain;margin:0 auto 18px;display:block;filter:drop-shadow(0 4px 14px rgba(0,0,0,.4));">
+      <div class="r r1 cap" style="letter-spacing:.18em;text-transform:uppercase;">Tập đoàn Công nghiệp – Năng lượng Quốc gia Việt Nam</div>
+      <div class="r r2 cap" style="margin-bottom:28px;">Chi nhánh Phát điện Dầu khí</div>
+      <div class="r r3 pill" style="display:inline-block;">PVNEXT 2025 · TUẦN 10</div>
+      <h1 class="r r3 title" style="font-size:clamp(1.9rem,4.6vw,3.8rem);">TRIỂN KHAI XÂY DỰNG MÔ HÌNH AI<br>TRONG CÔNG TÁC<br><span style="color:var(--green);">KỸ THUẬT – VẬN HÀNH – BẢO DƯỠNG</span></h1>
+      <p class="r r4 lead" style="margin:0 auto;text-align:center;">Nhà máy Nhiệt điện Sông Hậu 1 · Ấp Phú Xuân, xã Châu Thành, Thành phố Cần Thơ</p>
+    </div>
+    <footer class="cover-foot r r5">
+      <span>www.pvpgb.vn</span>
+      <span>Tháng 03 năm 2026</span>
+    </footer>
+  </section>
+
+  <!-- 2. AGENDA -->
+  <section class="slide" id="s2" data-title="Nội dung báo cáo">
+    <div class="bg"></div><div class="blueprint"></div><div class="grain"></div>
+    <div class="content">
+      <div class="kicker r r1">Nội dung báo cáo</div>
+      <h2 class="section-title r r2">5 phần trọng tâm</h2>
+      <div class="grid grid-3 r r3">
+        <div class="card"><div class="tag-dot">01</div><h3>Bối cảnh & Hạ tầng dữ liệu</h3><p>Vì sao hạ tầng dữ liệu là nền tảng kết nối toàn doanh nghiệp.</p></div>
+        <div class="card"><div class="tag-dot">02</div><h3>Đối tượng & KPI vận hành</h3><p>Lò hơi siêu tới hạn Sông Hậu 1 và bộ KPI Boiler – Turbine.</p></div>
+        <div class="card"><div class="tag-dot">03</div><h3>Pilot cải thiện hiệu suất lò hơi</h3><p>Phạm vi, tiêu chí thành công, lộ trình 11 tuần.</p></div>
+        <div class="card"><div class="tag-dot">04</div><h3>Kiến trúc giải pháp & Chi phí</h3><p>Kiến trúc Pilot trên Azure và dự toán ngân sách MVP.</p></div>
+        <div class="card"><div class="tag-dot">05</div><h3>Vận hành đội ngũ & Kết quả</h3><p>Vai trò nhân sự, ML Pipeline, chất lượng dữ liệu và kết quả đạt được.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. INFRASTRUCTURE -->
+  <section class="slide" id="s3" data-title="Hạ tầng kết nối doanh nghiệp">
+    <div class="bg"></div><div class="blueprint"></div><div class="grain"></div>
+    <div class="content">
+      <div class="kicker r r1">Bối cảnh chiến lược</div>
+      <h2 class="section-title r r2">Một hạ tầng dữ liệu kết nối toàn doanh nghiệp</h2>
+      <p class="lead r r3">Hạ tầng tập trung vào <b style="color:#fff;">Context</b> là yếu tố then chốt để liên kết dữ liệu trên toàn doanh nghiệp, hỗ trợ chiến lược hội tụ dữ liệu (data convergence), Big Data và phân tích. Sự hội tụ <b style="color:#fff;">IT – OT</b> giúp các tổ chức lấy dữ liệu làm trung tâm hỗ trợ trực tiếp cho vận hành và OT bằng chiến lược dữ liệu của mình.</p>
+      <div class="grid grid-3 r r4" style="margin-top:28px;">
+        <div class="card"><h3>IT Convergence</h3><p>Hệ thống quản trị, ERP, phân tích dữ liệu doanh nghiệp.</p></div>
+        <div class="card"><h3>OT Convergence</h3><p>SCADA, DCS, cảm biến vận hành nhà máy thời gian thực.</p></div>
+        <div class="card"><h3>Unified Context Layer</h3><p>Nền tảng dữ liệu hợp nhất làm cơ sở cho mô hình AI/ML.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. SONG HAU 1 BOILER -->
+  <section class="slide" id="s4" data-title="Lò hơi siêu tới hạn Sông Hậu 1">
+    <div class="bg"></div><div class="blueprint"></div><div class="grain"></div>
+    <div class="content">
+      <div class="kicker r r1">Đối tượng triển khai</div>
+      <h2 class="section-title r r2">Công nghệ lò hơi siêu tới hạn Sông Hậu 1</h2>
+      <div class="grid grid-2 r r3" style="align-items:start;">
+        <div class="card">
+          <h3>Đặc tính công nghệ</h3>
+          <p>Lò hơi đốt than phun trực tiếp, tham số hơi siêu tới hạn, kiểu trực lưu (once-through), 01 lần quá nhiệt trung gian, tuần hoàn tự nhiên; sử dụng công nghệ buồng đốt giảm phát thải NOx.</p>
+        </div>
+        <div class="card">
+          <h3>Nhiên liệu vận hành</h3>
+          <p>Than bitum/cận bitum nhập khẩu là nhiên liệu chính; dầu DO hỗ trợ khởi động và vận hành tải thấp dưới 40%. Từ 40–75% tải dùng DO hỗ trợ đốt than; trên 75% tải vận hành hoàn toàn bằng than.</p>
+        </div>
+      </div>
+      <div class="card r r4" style="margin-top:18px;">
+        <h3>Cấu hình hệ thống nghiền than</h3>
+        <p>Bố trí <b style="color:var(--green);">5 hệ thống máy nghiền than</b> (4 vận hành + 1 dự phòng) để đáp ứng tải vận hành <b style="color:#fff;">600 MW</b> (4 máy nghiền).</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. BOILER KPI -->
+  <section class="slide" id="s5" data-title="KPI giám sát Lò hơi">
+    <div class="bg"></div><div class="blueprint"></div><div class="grain"></div>
+    <div class="content">
+      <div class="kicker r r1">Phụ lục A</div>
+      <h2 class="section-title r r2">Bộ KPI điển hình giám sát Lò hơi</h2>
+      <div class="grid grid-4 r r3">
+        <div class="card"><h3>Hiệu suất</h3><p>Boiler Efficiency — chỉ số quan trọng nhất phản ánh hiệu quả chuyển hóa năng lượng.</p></div>
+        <div class="card"><h3>Sản lượng hơi</h3><p>Steam/Hot Water Output — tốc độ sinh hơi (kg/h, GPM).</p></div>
+        <div class="card"><h3>Tiêu hao nhiên liệu</h3><p>Fuel/Energy Consumption — than, dầu, điện tiêu thụ.</p></div>
+        <div class="card"><h3>Khí thải & nhiệt độ khói</h3><p>Stack Gas Temperature, Flue Gas Composition (O2, CO2, NOx, SOx).</p></div>
+      </div>
+      <div class="grid grid-4 r r4" style="margin-top:14px;">
+        <div class="card"><h3>Áp suất & mức nước</h3><p>Boiler Pressure, Water Level — an toàn vận hành.</p></div>
+        <div class="card"><h3>Khởi động / dừng máy</h3><p>Start-up Time, Shutdown Time — tối ưu thời gian chuyển trạng thái.</p></div>
+        <div class="card"><h3>Bảo dưỡng & an toàn</h3><p>Maintenance Downtime, Safety Incidents, Blowdown Rate.</p></div>
+        <div class="card"><h3>Chi phí vận hành</h3><p>Cost of Maintenance, chi phí hóa chất xử lý nước cấp.</p></div>
+      </div>
+      <p class="cap r r5" style="margin-top:16px;">Lưu ý: Việc tính toán KPI phụ thuộc vào khả năng đo lường các tham số và công thức áp dụng tại từng đơn vị.</p>
+    </div>
+  </section>
+
+  <!-- 6. TURBINE KPI -->
+  <section class="slide" id="s6" data-title="KPI giám sát Turbine">
+    <div class="bg"></div><div class="blueprint"></div><div class="grain"></div>
+    <div class="content">
+      <div class="kicker r r1">Phụ lục B</div>
+      <h2 class="section-title r r2">Bộ KPI điển hình giám sát Turbine hơi</h2>
+      <table class="kpi r r3">
+        <tr><th>Nhóm KPI</th><th>Ý nghĩa</th></tr>
+        <tr><td>Thermal / Mechanical Efficiency</td><td>Hiệu suất chuyển hóa năng lượng và hiệu suất cơ học của turbine</td></tr>
+        <tr><td>Turbine Load</td><td>Tỷ lệ tải đang vận hành so với công suất định mức</td></tr>
+        <tr><td>Exhaust Pressure / Steam Quality</td><td>Áp suất thoát hơi và độ khô của hơi đầu vào turbine</td></tr>
+        <tr><td>Vibration Levels</td><td>Cảnh báo sớm sự cố cơ khí hoặc mất cân bằng</td></tr>
+        <tr><td>Heat Rate</td><td>Lượng nhiệt cần để sinh ra một đơn vị điện năng — càng thấp càng hiệu quả</td></tr>
+        <tr><td>Start-up/Shutdown Time</td><td>Thời gian khởi động và dừng máy, ảnh hưởng hiệu suất tổng thể</td></tr>
+        <tr><td>Reliability & Availability</td><td>Độ tin cậy và tỷ lệ sẵn sàng vận hành của turbine</td></tr>
+        <tr><td>Maintenance Cost & Safety</td><td>Chi phí bảo dưỡng và các sự cố an toàn liên quan</td></tr>
+      </table>
+      <p class="cap r r4" style="margin-top:14px;">Lưu ý: Việc tính toán KPI phụ thuộc vào khả năng đo lường các tham số và công thức áp dụng tại từng đơn vị.</p>
+    </div>
+  </section>
+
+  <!-- 7. CASE STUDY -->
+  <section class="slide" id="s7" data-title="Case Study cải thiện hiệu suất Lò hơi">
+    <div class="bg"></div><div class="blueprint"></div><div class="grain"></div>
+    <div class="content" style="text-align:center;">
+      <div class="kicker r r1" style="justify-content:center;">Case study</div>
+      <h2 class="section-title r r2">Cải thiện hiệu suất Lò hơi bằng Analytics</h2>
+      <p class="lead r r3" style="margin:0 auto;">Ứng dụng phân tích dữ liệu vận hành để xác định các yếu tố ảnh hưởng đến hiệu suất đốt, từ đó đưa ra khuyến nghị điều chỉnh quá trình vận hành theo thời gian thực — đây là nền tảng cho Pilot đầu tiên triển khai tại Sông Hậu 1.</p>
+      <div class="grid grid-3 r r4" style="margin-top:28px;text-align:left;">
+        <div class="card"><div class="num">01</div><p style="color:#fff;font-weight:500;">Thu thập & chuẩn hóa dữ liệu vận hành lịch sử và thời gian thực</p></div>
+        <div class="card"><div class="num">02</div><p style="color:#fff;font-weight:500;">Xây dựng mô hình dự đoán hiệu suất đốt dựa trên chất lượng than và hệ khí/khói</p></div>
+        <div class="card"><div class="num">03</div><p style="color:#fff;font-weight:500;">Đưa ra khuyến nghị điều chỉnh để tối ưu hiệu suất lò hơi</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8. PILOT SCOPE -->
+  <section class="slide" id="s8" data-title="Phạm vi Pilot & Tiêu chí thành công">
+    <div class="bg"></div><div class="blueprint"></div><div class="grain"></div>
+    <div class="content">
+      <div class="kicker r r1">Phạm vi triển khai</div>
+      <h2 class="section-title r r2">Pilot — Cải thiện hiệu suất Lò hơi Sông Hậu 1</h2>
+      <div class="divider r r3"></div>
+      <div class="card r r4">
+        <h3>Tiêu chí thành công (Success Criteria)</h3>
+        <p>Mô hình đánh giá các yếu tố tác động đến việc tăng/giảm hiệu suất lò hơi, tập trung phân tích <b style="color:#fff;">chất lượng than</b> và <b style="color:#fff;">hệ khí khói/gió vào lò</b> để đưa ra dự đoán/chỉ báo cải thiện chế độ đốt trong buồng lửa, từ đó điều chỉnh chế độ đốt nhằm nâng cao hiệu suất lò hơi.</p>
+      </div>
+      <div class="grid grid-2 r r5" style="margin-top:18px;">
+        <div class="card"><h3>Đầu vào phân tích</h3><p>Chất lượng than đầu vào, lưu lượng và thành phần khí/khói, thông số vận hành buồng lửa.</p></div>
+        <div class="card"><h3>Đầu ra kỳ vọng</h3><p>Chỉ báo và khuyến nghị điều chỉnh chế độ đốt theo thời gian thực, hỗ trợ vận hành viên ra quyết định.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9. TIMELINE -->
+  <section class="slide" id="s9" data-title="Lộ trình triển khai 11 tuần">
+    <div class="bg"></div><div class="blueprint"></div><div class="grain"></div>
+    <div class="content">
+      <div class="kicker r r1">Kế hoạch triển khai</div>
+      <h2 class="section-title r r2">Lộ trình Pilot — 11 tuần</h2>
+      <div class="flow-cols r r3">
+        <div class="flow">
+          <div class="flow-step"><span class="wk">W1</span><div class="lbl">Requirement Gathering</div></div>
+          <div class="flow-step"><span class="wk">W1–W2</span><div class="lbl">Infrastructure Setup</div></div>
+          <div class="flow-step"><span class="wk">W2–W3</span><div class="lbl">Data Collection & EDA</div></div>
+          <div class="flow-step"><span class="wk">W3–W4</span><div class="lbl">Data Cleaning</div></div>
+          <div class="flow-step"><span class="wk">W4–W5</span><div class="lbl">Feature Engineering</div></div>
+          <div class="flow-step"><span class="wk">W5–W7</span><div class="lbl">Model Selection & Training</div></div>
+        </div>
+        <div class="flow">
+          <div class="flow-step"><span class="wk">W7–W8</span><div class="lbl">Hyperparameter Tuning</div></div>
+          <div class="flow-step"><span class="wk">W8–W9</span><div class="lbl">KPI Generation & Power BI Dashboard</div></div>
+          <div class="flow-step"><span class="wk">W9–W10</span><div class="lbl">Deployment</div></div>
+          <div class="flow-step"><span class="wk">W10</span><div class="lbl">Testing</div></div>
+          <div class="flow-step"><span class="wk">W11</span><div class="lbl">Handover</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10. ARCHITECTURE + BOM -->
+  <section class="slide" id="s10" data-title="Kiến trúc giải pháp & Dự toán Azure">
+    <div class="bg"></div><div class="blueprint"></div><div class="grain"></div>
+    <div class="content">
+      <div class="kicker r r1">Kiến trúc & ngân sách</div>
+      <h2 class="section-title r r2">Kiến trúc giải pháp Pilot trên Azure</h2>
+      <div class="grid grid-4 r r3">
+        <div class="card"><h3>Ingest</h3><p>Azure Data Factory — thu thập dữ liệu lịch sử & vận hành (~1TB).</p></div>
+        <div class="card"><h3>Lưu trữ</h3><p>Data Lake Storage Gen2, Azure SQL Database (metadata).</p></div>
+        <div class="card"><h3>Phân tích</h3><p>Azure Data Explorer, Azure Databricks (EDA, Training, Prediction).</p></div>
+        <div class="card"><h3>Trực quan hóa</h3><p>Power BI Dashboard cho KPI vận hành thời gian thực.</p></div>
+      </div>
+      <div class="card r r4" style="margin-top:18px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;">
+        <div>
+          <h3 style="margin-bottom:2px;">Dự toán chi phí Azure hàng tháng (MVP)</h3>
+          <p>Bao gồm Data Factory, Storage, Data Explorer, SQL Database và Databricks (EDA/Training/Prediction).</p>
+        </div>
+        <div style="text-align:right;">
+          <div class="num">$5,049.63</div>
+          <div class="cap">/ tháng — ước tính</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11. ROLES -->
+  <section class="slide" id="s11" data-title="Vai trò nhân sự triển khai">
+    <div class="bg"></div><div class="blueprint"></div><div class="grain"></div>
+    <div class="content">
+      <div class="kicker r r1">Đội ngũ triển khai</div>
+      <h2 class="section-title r r2">Vai trò nhân sự trong dự án AI</h2>
+      <div class="grid grid-4 r r3">
+        <div class="card"><div class="tag-dot">AE</div><h3>Analytics Engineer</h3><p>Xây dựng pipeline dữ liệu, mô hình hóa dữ liệu phục vụ phân tích.</p></div>
+        <div class="card"><div class="tag-dot">DA</div><h3>Data Analyst</h3><p>Phân tích số liệu vận hành, xây dựng báo cáo và KPI dashboard.</p></div>
+        <div class="card"><div class="tag-dot">DE</div><h3>Data Engineer</h3><p>Thiết kế, vận hành hạ tầng thu thập và lưu trữ dữ liệu quy mô lớn.</p></div>
+        <div class="card"><div class="tag-dot">DS</div><h3>Data Scientist</h3><p>Phát triển, huấn luyện và tối ưu mô hình Machine Learning.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12. ML PIPELINE & DATA QUALITY -->
+  <section class="slide" id="s12" data-title="ML Pipeline & Chất lượng dữ liệu">
+    <div class="bg"></div><div class="blueprint"></div><div class="grain"></div>
+    <div class="content">
+      <div class="kicker r r1">Vận hành mô hình</div>
+      <h2 class="section-title r r2">Machine Learning Pipeline & Cải thiện chất lượng dữ liệu</h2>
+      <div class="grid grid-2 r r3">
+        <div class="card">
+          <h3>Machine Learning Pipeline</h3>
+          <p>Quy trình khép kín từ thu thập dữ liệu → làm sạch → trích xuất đặc trưng → huấn luyện mô hình → đánh giá → triển khai dự đoán, vận hành liên tục và tái huấn luyện định kỳ theo dữ liệu thực tế nhà máy.</p>
+        </div>
+        <div class="card">
+          <h3>Cải thiện chất lượng dữ liệu</h3>
+          <p>Chuẩn hóa nguồn dữ liệu cảm biến, xử lý dữ liệu thiếu/nhiễu, đồng bộ múi giờ và đơn vị đo, thiết lập quy tắc kiểm soát chất lượng dữ liệu (Data Quality Rules) trước khi đưa vào mô hình.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 13. RESULTS -->
+  <section class="slide" id="s13" data-title="Kết quả đạt được">
+    <div class="bg"></div><div class="blueprint"></div><div class="grain"></div>
+    <div class="content">
+      <div class="kicker r r1">Kết quả</div>
+      <h2 class="section-title r r2">Kết quả triển khai Pilot</h2>
+      <div class="grid grid-3 r r3">
+        <div class="card"><div class="num">11</div><p style="color:#fff;font-weight:500;">tuần triển khai Pilot từ thu thập yêu cầu đến bàn giao vận hành</p></div>
+        <div class="card"><div class="num">4</div><p style="color:#fff;font-weight:500;">vai trò chuyên môn được huy động: Analytics Engineer, Data Analyst, Data Engineer, Data Scientist</p></div>
+        <div class="card"><div class="num">~5K</div><p style="color:#fff;font-weight:500;">USD/tháng chi phí hạ tầng Azure ước tính cho giai đoạn MVP</p></div>
+      </div>
+      <p class="lead r r4" style="margin-top:22px;">Mô hình AI giúp nhận diện sớm các yếu tố ảnh hưởng đến hiệu suất lò hơi, hỗ trợ vận hành viên điều chỉnh chế độ đốt kịp thời, hướng tới mục tiêu tối ưu hiệu suất và giảm tiêu hao nhiên liệu tại Nhà máy Nhiệt điện Sông Hậu 1.</p>
+    </div>
+  </section>
+
+  <!-- 14. CLOSING -->
+  <section class="slide" id="s14" data-title="Kết luận & Lời cảm ơn">
+    <div class="bg"></div><div class="blueprint"></div><div class="gauge-glow"></div><div class="grain"></div>
+    <div class="content" style="text-align:center;">
+      <div class="kicker r r1" style="justify-content:center;">Kết luận</div>
+      <h1 class="r r2 title" style="font-size:clamp(2rem,5vw,4rem);">CẢM ƠN<br><span style="color:var(--green);">QUÝ LÃNH ĐẠO</span></h1>
+      <p class="r r3 lead" style="margin:0 auto;">Đề xuất tiếp tục triển khai Pilot và nhân rộng mô hình AI cho các hệ thống Kỹ thuật – Vận hành – Bảo dưỡng khác tại Nhà máy.</p>
+      <div class="r r4" style="margin-top:32px;">
+        <div class="cap" style="font-size:clamp(.85rem,1.2vw,1rem);font-weight:600;color:#fff;">NHÀ MÁY NHIỆT ĐIỆN SÔNG HẬU 1</div>
+        <div class="cap">Chi nhánh Phát điện Dầu khí · www.pvpgb.vn</div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+const slides = Array.from(document.querySelectorAll('.slide'));
+const navlist = document.getElementById('navlist');
+const deck = document.getElementById('deck');
+const progressBar = document.getElementById('progressBar');
+
+slides.forEach((sl, i) => {
+  const btn = document.createElement('button');
+  btn.className = 'navlink';
+  btn.dataset.target = sl.id;
+  btn.innerHTML = `<span class="idx">${String(i+1).padStart(2,'0')}</span><span>${sl.dataset.title}</span>`;
+  btn.addEventListener('click', () => {
+    document.getElementById(sl.id).scrollIntoView({behavior:'smooth'});
+    document.getElementById('sidenav').classList.remove('open');
+  });
+  navlist.appendChild(btn);
+});
+const navlinks = Array.from(document.querySelectorAll('.navlink'));
+
+const io = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.querySelectorAll('.r').forEach(el => el.classList.add('in'));
+      const idx = slides.indexOf(entry.target);
+      navlinks.forEach(n => n.classList.remove('active'));
+      if (navlinks[idx]) navlinks[idx].classList.add('active');
+    }
+  });
+}, {root: deck, threshold: 0.5});
+slides.forEach(sl => io.observe(sl));
+
+deck.addEventListener('scroll', () => {
+  const pct = (deck.scrollTop) / (deck.scrollHeight - deck.clientHeight);
+  progressBar.style.transform = `scaleX(${pct})`;
+});
+
+document.getElementById('navToggle').addEventListener('click', () => {
+  document.getElementById('sidenav').classList.toggle('open');
+});
+</script>
+</body>
+</html>
