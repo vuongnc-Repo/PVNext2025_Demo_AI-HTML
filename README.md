@@ -1,2 +1,1 @@
-# pvnext2025-AI-
-Demo AI PV Next
+# Thực hành ứng dụng AI làm HTML sử dụng Claude Code
